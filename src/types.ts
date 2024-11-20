@@ -1,17 +1,8 @@
 import MyPromise from '.'
 
-export enum State {
-  PENDING = 'pending',
-  RESOLVED = 'fulfilled',
-  REJECTED = 'rejected',
-}
+export type State = 'pending' | 'fulfilled' | 'rejected'
 
-export enum MultiplePromise {
-  ALL,
-  ALLSETLED,
-  RACE,
-  ANY,
-}
+export type MultiplePromise = 'ALL' | 'ALLSETLED' | 'RACE' | 'ANY'
 
 export type Handler = (value: any) => any
 

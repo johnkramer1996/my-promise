@@ -3,7 +3,7 @@ import { Executor, Handler, IMyPromise, MultiplePromise, QueueItem, Result, Stat
 class MyPromise implements IMyPromise {
   private value = ''
   private queue: QueueItem[] = []
-  private state: State = State.PENDING
+  private state: State = 'pending'
 
   constructor(executor?: Executor) {
     try {
@@ -14,19 +14,19 @@ class MyPromise implements IMyPromise {
   }
 
   static all(promises: any[]) {
-    return MyPromise._multiple(promises, MultiplePromise.ALL)
+    return MyPromise._multiple(promises, 'ALL')
   }
 
   static allSettled(promises: any[]) {
-    return MyPromise._multiple(promises, MultiplePromise.ALLSETLED)
+    return MyPromise._multiple(promises, 'ALLSETLED')
   }
 
   static any(promises: any[]) {
-    return MyPromise._multiple(promises, MultiplePromise.ANY)
+    return MyPromise._multiple(promises, 'ANY')
   }
 
   static race(promises: any[]) {
-    return MyPromise._multiple(promises, MultiplePromise.RACE)
+    return MyPromise._multiple(promises, 'RACE')
   }
 
   static _multiple(promises: any[], typeMultiplePromise: MultiplePromise) {
@@ -38,18 +38,18 @@ class MyPromise implements IMyPromise {
         const addResultAndCheckIfIsCompleted = (data: Result) => {
           const result = data.value || data.reason
           switch (typeMultiplePromise) {
-            case MultiplePromise.ALL:
-              data.status === State.REJECTED && rej(result)
+            case 'ALL':
+              data.status === 'rejected' && rej(result)
               results[i] = result
               break
-            case MultiplePromise.ALLSETLED:
+            case 'ALLSETLED':
               results[i] = data
               break
-            case MultiplePromise.ANY:
-              data.status === State.RESOLVED && res(result)
+            case 'ANY':
+              data.status === 'fulfilled' && res(result)
               return
-            case MultiplePromise.RACE:
-              data.status === State.RESOLVED ? res(result) : rej(result)
+            case 'RACE':
+              data.status === 'fulfilled' ? res(result) : rej(result)
               return
           }
           if (++count === promises.length) res(results)
@@ -57,11 +57,11 @@ class MyPromise implements IMyPromise {
 
         if (promise instanceof MyPromise) {
           promise
-            .then((data) => addResultAndCheckIfIsCompleted({ status: State.RESOLVED, value: data }))
-            .catch((data) => addResultAndCheckIfIsCompleted({ status: State.REJECTED, reason: data }))
+            .then((data) => addResultAndCheckIfIsCompleted({ status: 'fulfilled', value: data }))
+            .catch((data) => addResultAndCheckIfIsCompleted({ status: 'rejected', reason: data }))
           return
         }
-        addResultAndCheckIfIsCompleted({ status: State.RESOLVED, value: promise })
+        addResultAndCheckIfIsCompleted({ status: 'fulfilled', value: promise })
       })
     })
   }
@@ -75,18 +75,18 @@ class MyPromise implements IMyPromise {
   }
 
   then(handler: Handler, handlerReject?: Handler) {
-    const promise = this.handlerChain(handler, State.RESOLVED)
+    const promise = this.handlerChain(handler, 'fulfilled')
     if (handlerReject)
       this.queue.push({
         handler: handlerReject,
         promise,
-        state: State.REJECTED,
+        state: 'rejected',
       })
     return promise
   }
 
   catch(handler: Handler) {
-    return this.handlerChain(handler, State.REJECTED)
+    return this.handlerChain(handler, 'rejected')
   }
 
   private handlerChain(handler: Handler, state: State) {
@@ -100,15 +100,15 @@ class MyPromise implements IMyPromise {
   }
 
   private isPending() {
-    return this.state === State.PENDING
+    return this.state === 'pending'
   }
 
   private resolve(value: any) {
-    this.handleResult(State.RESOLVED, value)
+    this.handleResult('fulfilled', value)
   }
 
   private reject(value: any) {
-    this.handleResult(State.REJECTED, value)
+    this.handleResult('rejected', value)
   }
 
   private handleResult(state: State, value: any) {
@@ -120,7 +120,7 @@ class MyPromise implements IMyPromise {
 
   private runHandlers() {
     queueMicrotask(() => {
-      if (this.state === State.PENDING) return
+      if (this.state === 'pending') return
 
       while (this.queue.length) {
         const { promise, handler, state } = this.queue.shift() as QueueItem
@@ -153,7 +153,7 @@ class MyPromise implements IMyPromise {
       returnValue.then(promise.resolve.bind(promise)).catch(promise.reject.bind(promise))
       return
     }
-    const isResolved = this.state === State.RESOLVED
+    const isResolved = this.state === 'fulfilled'
     promise[isResolved ? 'resolve' : 'reject'](returnValue)
   }
 }
