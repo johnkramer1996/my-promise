@@ -126,7 +126,14 @@ class MyPromise implements IMyPromise {
         const { promise, handler, state } = this.queue.shift() as QueueItem
 
         const isTheSameState = this.state === state
-        if (isTheSameState && this.isTheSameNextPromise(promise)) this.skipNextHanlder()
+        const hasNextPromise = this.isTheSameNextPromise(promise)
+        if (hasNextPromise) {
+          if (isTheSameState) {
+            this.skipNextHanlder()
+          } else {
+            continue
+          }
+        }
 
         let returnValue: MyPromise | any
         try {
@@ -135,7 +142,13 @@ class MyPromise implements IMyPromise {
           promise.reject(e)
           return
         }
-        this.resolveChainPromise(returnValue, promise)
+        if (returnValue instanceof MyPromise) {
+          returnValue.then(promise.resolve.bind(promise)).catch(promise.reject.bind(promise))
+          continue
+        }
+        const isResolved = isTheSameState || this.state === 'fulfilled'
+
+        promise[isResolved ? 'resolve' : 'reject'](returnValue)
       }
     })
   }
@@ -146,15 +159,6 @@ class MyPromise implements IMyPromise {
 
   private skipNextHanlder() {
     this.queue.shift()
-  }
-
-  private resolveChainPromise(returnValue: MyPromise | any, promise: MyPromise) {
-    if (returnValue instanceof MyPromise) {
-      returnValue.then(promise.resolve.bind(promise)).catch(promise.reject.bind(promise))
-      return
-    }
-    const isResolved = this.state === 'fulfilled'
-    promise[isResolved ? 'resolve' : 'reject'](returnValue)
   }
 }
 
